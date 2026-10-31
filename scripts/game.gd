@@ -23,6 +23,7 @@ var _rate_t := 0.0
 var _rate_votes := 0
 var _rate_ok := false        # native 投票有没有真的提交出去（决定还要不要用 max_fps 兜底）
 var _rate_latched := false   # 是否已经把交换链重新落拍到目前屏档
+var _rate_settled := false   # 投票生效且已落拍：之后只做低频兜底轮询（见 _process 注释）
 
 func _open_login_card() -> void:
 	if is_instance_valid(_login):
@@ -670,9 +671,14 @@ func _rate_relatch() -> void:
 func _process(dt: float) -> void:
 	# 高帧率投票重申：投出去的那次票会在息屏/切后台（surface 重建）时丢掉，
 	# 面板一旦跌回目标以下就再投一次；达到目标后不再调用，免得来回切档闪屏。
-	if _rate != null:
+	if _rate != null and not _rate_settled:
 		_rate_t -= dt
 		if _rate_t <= 0.0:
+			# ⚠ 钉住（投票生效 + 交换链已落拍）之后就不再轮询屏档：
+			# DisplayServer.screen_get_refresh_rate() 在 Android 上要走到展示层，而这条
+			# 计时器原来是每 3 秒一次 —— 真机表现就是"每 3 秒固定卡一下"（120 掉到 117）。
+			# 票丢了只有一种情况：surface 重建（切后台/息屏），那条由 _notification 的
+			# NOTIFICATION_APPLICATION_FOCUS_IN 唤醒，不需要定时查。
 			_rate_t = 3.0
 			_rate_reassert()
 			# surface 是在后台被系统丢掉的 ⇒ 票没了；下一次 _rate_reassert 重新投中之后
@@ -680,6 +686,8 @@ func _process(dt: float) -> void:
 			if not _rate_ok:
 				_rate_latched = false
 	_rate_relatch()
+	if _rate_ok and _rate_latched:
+		_rate_settled = true
 	# 只下载模式：把进度推给选曲页那颗按钮的进度环
 	if _dl_only and _select != null:
 		var f := dl_fraction()
@@ -1294,6 +1302,13 @@ func _request_back() -> void:
 	_back_pressed.call_deferred()
 
 func _notification(what: int) -> void:
+	# 回前台：surface 会重建、高刷票会丢 ⇒ 重置状态，让下一次 tick 立刻重新投票+落拍
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and _rate != null:
+		_rate_settled = false
+		_rate_latched = false
+		_rate_votes = 0
+		_rate_t = 0.0
+		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
 	_request_back()
