@@ -4,7 +4,15 @@
 > 所有代码与架构设计由个人使用 AI 工具编写。本模拟器仅用于本地离线打歌，
 > 请勿用于任何商业用途或传播。**!!!不建议下载!!!**
 
-Godot 4.7 写的 PhiTogether / Phigros 风格打歌播放器。不含谱面、音乐、曲绘。
+Godot 4.7 写的 PhiTogether风格播放器。
+
+## 下载
+
+[Releases](https://github.com/soppi666/PhiTogetherNext/releases) 里每版三个文件（`26W44` = 2026 年第 44 周）：
+
+- `PhiTogetherNext_26W44_win64.zip` — Windows，解压即用（exe + pck + `chart_ext…dll`）
+- `PhiTogetherNext_26W44_win64.exe` — 单文件（pck 已内嵌），仍需要把上面 zip 里那个 `chart_ext…dll` 放在旁边
+- `PhiTogetherNext_26W44_arm64.apk` — Android，仅 arm64-v8a
 
 ## 已知问题
 
@@ -14,16 +22,6 @@ Godot 4.7 写的 PhiTogether / Phigros 风格打歌播放器。不含谱面、�
 - UI 显示异常，UI 很难看
 - 很多功能没做
 - 性能要求高
-
-## 能做什么
-
-- 读谱：RPE（`.json` / `.pez`）、PE、PhiZone 在线谱；本地谱库 + 在线库
-- 打歌：判定线 / 音符 / Hold / Drag / Flick、判定窗口与偏移、多押提示、autoplay、暂停层、3-2-1
-- 噪域（blockArea）：RPE 标记协议 + GPU 掩码，无 CPU 回退
-- 皮肤：phira / Phira-Pro / PT 资源包，实时换
-- 页面：结算 / 设置 / 选曲，版式与交互参考 PhiTogether 原版
-- 渲染：Forward Mobile（Vulkan）；Android 主动投高刷并重建交换链对齐节拍
-- 录制：进程内出片（Android MediaCodec，桌面 ffmpeg）—— 见「已知问题」第三条
 
 ## 依赖
 
@@ -106,8 +104,8 @@ fonts/            运行时字体（woff2）
 - 字体寒蝉全圆体 ChillRound 为 SIL OFL 1.1，© 2023 ChillType，全文见 `fonts/LICENSE-ChillRound.txt`。
 
 ## 感谢
-
-- 感谢 [PhiTogether](https://github.com/Team-PhiTogether/PhiTogether) —— 界面与交互参考
+- 感谢 [PhiZonePlayer](https://github.com/PhiZone/player) 的渲染代码
+- 感谢 [PhiTogether](https://github.com/Team-PhiTogether/PhiTogether) 的界面与交互参考
 - 感谢 [Phira-Pro](https://github.com/Phira-Pro/Phira-Pro) 的噪域 shader
 - 感谢 [fluXis](https://github.com/InventiveRhythm/fluXis) 的故障特效
 - 感谢 [godotshaders.com](https://godotshaders.com/) 的 CC0 实现
