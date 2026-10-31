@@ -3359,15 +3359,26 @@ func _hud_carrier(el: Control) -> Control:
 			return p as Control
 	return el
 
-## 特效名 → Shader：谱面自带的 "/xxx.glsl" 在**运行时转译**成 gdshader（phizone 语义）；
-## 其余（无斜杠的 stock 特效名）不预置任何 .gdshader —— 预转好的那几个已经删掉，
-## 以后都按需转。解析失败也缓存（null），避免每帧重试刷错误。
+## 特效名 → Shader：无斜杠 = assets/effects 里的内置 40 个（rpe-next 特效移植的预转产物）；
+## "/xxx" = 谱面自带 glsl（phizone 语义，运行时转译成 gdshader）。解析失败也缓存（null），
+## 避免每帧重试刷错误。
+## ⚠ 这套 assets/effects 是游玩表现的一部分，删了以后谱面里的 stock 特效名会解析成 null：
+## 链上的视口拿不到 shader 就画成一片白，表现是"闪一下白光然后什么都没有"（真机踩过）。
 func _resolve_shader(raw: String) -> Shader:
 	if _fx_custom.has(raw):
 		return _fx_custom[raw]
 	var sh: Shader = null
 	var nm := raw.trim_prefix("/")
-	if raw != "" and raw.begins_with("/") and not nm.contains("..") and not nm.contains("\\"):
+	if raw == "":
+		pass
+	elif not raw.begins_with("/"):
+		var bp := "res://assets/effects/%s.gdshader" % nm
+		if not ResourceLoader.exists(bp) and nm.ends_with("_2"):
+			# rpe-next 的 _2 变体与基础版同源；没有独立文件时回落到基础版
+			bp = "res://assets/effects/%s.gdshader" % nm.substr(0, nm.length() - 2)
+		if ResourceLoader.exists(bp):
+			sh = load(bp) as Shader
+	elif not nm.contains("..") and not nm.contains("\\"):
 		sh = _custom_shader(nm)
 	_fx_custom[raw] = sh
 	return sh
