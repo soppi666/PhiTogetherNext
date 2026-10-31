@@ -23,6 +23,7 @@ var _rate_t := 0.0
 var _rate_votes := 0
 var _rate_ok := false        # native 投票有没有真的提交出去（决定还要不要用 max_fps 兜底）
 var _rate_latched := false   # 是否已经把交换链重新落拍到目前屏档
+var _rate_in_bg := false       # 是否真的进过后台（FOCUS_IN 只在它之后才算"回来"）
 var _rate_settled := false   # 投票生效且已落拍：之后只做低频兜底轮询（见 _process 注释）
 
 func _open_login_card() -> void:
@@ -640,7 +641,7 @@ func _rate_reassert() -> void:
 		return
 	_rate_votes += 1
 	var diag := String(_rate.vote(want))
-	_mark("V")
+	_mark("v")
 	if diag.contains("VOTE SUBMITTED"):
 		if not _rate_ok:
 			_rate_ok = true
@@ -1311,13 +1312,20 @@ func _request_back() -> void:
 
 func _notification(what: int) -> void:
 	# 回前台：surface 会重建、高刷票会丢 ⇒ 重置状态，让下一次 tick 立刻重新投票+落拍
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_rate_in_bg = true
+		return
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN and _rate != null:
-		_rate_settled = false
-		_rate_latched = false
-		_rate_votes = 0
-		_rate_t = 0.0
-		if is_instance_valid(_stage):
-			_stage.refresh_latency()
+		# ⚠ 只有"真的从后台回来"才重置：部分机型每次聚焦/触摸都会补发 FOCUS_IN，
+		# 无脑重置会把 settled 打掉，于是每帧重新投票 + 重建交换链（= 大卡顿）。
+		if _rate_in_bg:
+			_rate_in_bg = false
+			_rate_settled = false
+			_rate_latched = false
+			_rate_votes = 0
+			_rate_t = 0.0
+			if is_instance_valid(_stage):
+				_stage.refresh_latency()
 		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return

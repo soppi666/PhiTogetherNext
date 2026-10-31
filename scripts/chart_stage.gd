@@ -2890,9 +2890,16 @@ func _process(delta: float) -> void:
 		# 多余直接丢（take_hits 已排空队列，不积压）；常规谱远低于封顶零差异。
 		# 手机音频驱动更慢（AAudio 每次 play ~1ms）→ 移动端折半。
 		var nh := 0
+		var played := {}
 		for h in _cp.take_hits():
 			if nh >= _hit_cap:
 				break
+			# 同一帧里同一种打击音只播一次：移动端每次 play() 都有成本（真机实测能顶出
+			# 20ms+ 的长帧），多押和弦叠 3~4 次是"H"类卡顿的主要来源。
+			var k := "%d|%s" % [int(h[0]), String(h[1])]
+			if played.has(k):
+				continue
+			played[k] = true
 			nh += 1
 			_play_hit(int(h[0]), String(h[1]))
 	_cp.queue_redraw()
