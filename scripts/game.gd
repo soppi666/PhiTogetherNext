@@ -635,7 +635,12 @@ func _rate_reassert() -> void:
 	var want := float(UiTokens.MOBILE_TARGET_FPS)
 	var now := DisplayServer.screen_get_refresh_rate()
 	if now >= want - 1.0:
-		_rate_votes = 0      # 面板在目标档 ⇒ 这次不算"投不动"，失败配额清零
+		# ⚠ 面板已经在目标档也算"钉住了"：以前这里直接 return、不置 _rate_ok，
+		# 于是 _process 的计时器永远等不到 settled，每 3 秒还会因为 `not _rate_ok`
+		# 把 _rate_latched 打掉 ⇒ 每 3 秒重建一次交换链（真机就是固定周期的大卡顿，
+		# 调试层标记显示 V）。开机时面板本来就在 120 的情况（上次会话没掉档）必踩。
+		_rate_ok = true
+		_rate_votes = 0
 		return
 	if _rate_votes >= 24:    # 连续 24 次（≈72s）都投不上就停手，别和厂商策略死磕
 		return
