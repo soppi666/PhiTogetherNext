@@ -6,14 +6,6 @@
 
 Godot 4.7 写的 PhiTogether风格播放器。
 
-## 下载
-
-[Releases](https://github.com/soppi666/PhiTogetherNext/releases) 里每版三个文件（`26W44` = 2026 年第 44 周）：
-
-- `PhiTogetherNext_26W44_win64.zip` — Windows，解压即用（exe + pck + `chart_ext…dll`）
-- `PhiTogetherNext_26W44_win64.exe` — 单文件（pck 已内嵌），仍需要把上面 zip 里那个 `chart_ext…dll` 放在旁边
-- `PhiTogetherNext_26W44_arm64.apk` — Android，仅 arm64-v8a
-
 ## 已知问题
 
 - glsl 转 gdshader 后和原 glsl 表现不一致
@@ -104,8 +96,8 @@ fonts/            运行时字体（woff2）
 - 字体寒蝉全圆体 ChillRound 为 SIL OFL 1.1，© 2023 ChillType，全文见 `fonts/LICENSE-ChillRound.txt`。
 
 ## 感谢
-- 感谢 [PhiZonePlayer](https://github.com/PhiZone/player) 的渲染代码
-- 感谢 [PhiTogether](https://github.com/Team-PhiTogether/PhiTogether) 的界面与交互参考
+- 感谢 [PhiZonePlayer](https://github.com/PhiZone/player) 的渲染代码参考
+- 感谢 [PhiTogether](https://github.com/Team-PhiTogether/PhiTogether) 的界面参考与资源
 - 感谢 [Phira-Pro](https://github.com/Phira-Pro/Phira-Pro) 的噪域 shader
 - 感谢 [fluXis](https://github.com/InventiveRhythm/fluXis) 的故障特效
 - 感谢 [godotshaders.com](https://godotshaders.com/) 的 CC0 实现
