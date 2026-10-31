@@ -733,6 +733,7 @@ func _play_hit(type_: int, sname: String) -> void:
 	if p.stream != stream:
 		p.stream = stream      # 只有换皮/换包后才会走到，正常一响一分钱不花
 	p.play()
+	dbg_mark("H")
 
 func _load_image_any(path: String) -> Texture2D:
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -1295,6 +1296,19 @@ var _lrect := Rect2()      # 游玩画布在**父级/逻辑**空间里的矩形�
 
 # ── 真机帧率 / 线程落核诊断 ────────────────────────────────────────────
 
+var _dbg_marks := ""            # 本帧做过的"可疑事"缩写（调试模式用）
+var _dbg_hitch: Array = []      # 最近 3 次 >20ms 的卡顿
+
+## 打一个"这帧做过什么"的记号：V=高刷投票/落拍 L=音频延迟查询 H=打击音 E=特效链 S=重建舞台
+func dbg_mark(ch: String) -> void:
+	if not debug_mode or _dbg_marks.contains(ch):
+		return
+	_dbg_marks += ch
+
+## 回前台时输出延迟要重取（可能换了输出设备）
+func refresh_latency() -> void:
+	_lat_cache_t = 0.0
+
 func _on_post_draw() -> void:
 	# 整条呈现节拍的统计（帧率三值 + Performance 计数器 + 分区累加）只在调试模式跑：
 	# 正常游玩一个字节都不采，logcat 也不再每秒冒 QA-MON/QA-SPLIT 行。
@@ -1306,6 +1320,16 @@ func _on_post_draw() -> void:
 	var now_us := Time.get_ticks_usec()
 	if _audio_started and not _song_done and not _paused and _post_prev_us > 0:
 		_fps_track(float(now_us - _post_prev_us) / 1000000.0)
+		# 卡顿记录（只在调试模式）：>20ms 的帧连同"这帧我们做了什么事"的标记一起留 3 条，
+		# 用来分辨是我们自己的周期性活还是系统/合成器那边的事。
+		var dms := float(now_us - _post_prev_us) / 1000.0
+		if dms > 20.0:
+			_dbg_hitch.push_front("%.1fs Δ%.0fms %s" % [
+					_clock, dms, _dbg_marks if _dbg_marks != "" else "-"])
+			if _dbg_hitch.size() > 3:
+				_dbg_hitch.pop_back()
+			print("HITCH t=%.2f Δ=%.1fms marks=%s" % [_clock, dms, _dbg_marks])
+		_dbg_marks = ""
 	_post_prev_us = now_us
 
 ## 调试读数：prefs 口径(0=开 1=关 2=兼容) → 引擎实际档位。
@@ -1432,6 +1456,8 @@ func _perf_tick(delta: float) -> void:
 			_perf_pps, Engine.get_frames_per_second(), DisplayServer.screen_get_refresh_rate(),
 			_VS_FMT % [_vsync, DisplayServer.window_get_vsync_mode()], Engine.max_fps, str(get_viewport().get("use_hdr_2d")),
 			int(get_viewport().msaa_2d), _perf_line, _dbg_block_line()]
+		_dbg_lbl.text += "
+卡顿 " + (" | ".join(_dbg_hitch) if not _dbg_hitch.is_empty() else "无")
 	print("QA-PERF 上屏=%.1f/s 循环=%.1f/s 屏=%.0fHz vsync档→实际=%s max_fps=%d 本局帧率[最大=%.0f 平均=%.1f 最小=%.0f n=%d]%s | %s" % [
 		_perf_pps, Engine.get_frames_per_second(), DisplayServer.screen_get_refresh_rate(),
 		_VS_FMT % [_vsync, DisplayServer.window_get_vsync_mode()], Engine.max_fps, _fps_max,
@@ -2808,8 +2834,12 @@ func _process(delta: float) -> void:
 	# （≈0.42ms/帧），而三项里真正每帧变的只有 get_playback_position()。输出延迟在设备不变时
 	# 是常数，Android 上这次调用要走到音频驱动 ⇒ 每 0.5s 重取一次就够了。
 	if _lat_cache_t <= 0.0:
+		# ⚠ 别把这里设成短周期：AudioServer.get_output_latency() 在 Android 上要走音频驱动，
+		# 真机实录里每次都能顶出一帧 24ms 的长帧（60fps 那份 CSV 几乎每秒一次）。
+		# 输出延迟在"不换输出设备"时是常数 ⇒ 开谱查一次就够，回前台/每 30s 兜一次。
 		_lat_cache_ms = AudioServer.get_output_latency()
-		_lat_cache_t = 0.5
+		_lat_cache_t = 30.0
+		dbg_mark("L")
 	else:
 		_lat_cache_t -= delta
 

@@ -610,6 +610,11 @@ static func _one_line(t: String) -> String:
 	return t.replace("\n", " | ").strip_edges()
 
 
+## 给舞台的卡顿记录打记号（只有调试模式才生效，见 chart_stage.dbg_mark）
+func _mark(ch: String) -> void:
+	if is_instance_valid(_stage):
+		_stage.dbg_mark(ch)
+
 func _rate_boot() -> void:
 	if _rate != null or not OS.has_feature("mobile"):
 		return
@@ -635,6 +640,7 @@ func _rate_reassert() -> void:
 		return
 	_rate_votes += 1
 	var diag := String(_rate.vote(want))
+	_mark("V")
 	if diag.contains("VOTE SUBMITTED"):
 		if not _rate_ok:
 			_rate_ok = true
@@ -664,6 +670,7 @@ func _rate_relatch() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ADAPTIVE if back != DisplayServer.VSYNC_ADAPTIVE
 			else DisplayServer.VSYNC_ENABLED)
 	DisplayServer.window_set_vsync_mode(back as DisplayServer.VSyncMode)
+	_mark("V")
 	print("QA-FRAME 重新落拍 面板=", DisplayServer.screen_get_refresh_rate(),
 			"Hz 档→实际=", "%d→%d" % [UserPrefs.int_of("vsync"), DisplayServer.window_get_vsync_mode()],
 			" max_fps=", Engine.max_fps, "（交换链已重建，接下来这一档才是真读数）")
@@ -1089,6 +1096,7 @@ func _make_stage_backdrop() -> void:
 
 
 func _launch_stage_now(dir_path: String, chart_f: String = "") -> void:
+	_mark("S")
 	_last_play = {"dir": dir_path, "chart": chart_f}  # 结算页"重玩"要用同一份入场参数
 	_make_stage_backdrop()
 	var s := ChartStage.new()
@@ -1308,6 +1316,8 @@ func _notification(what: int) -> void:
 		_rate_latched = false
 		_rate_votes = 0
 		_rate_t = 0.0
+		if is_instance_valid(_stage):
+			_stage.refresh_latency()
 		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
