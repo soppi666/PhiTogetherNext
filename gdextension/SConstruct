@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+EnsureSConsVersion(4, 0)
+EnsurePythonVersion(3, 8)
+
+# 复用 godot-cpp 的构建环境（它会把配置好的 env Return 出来，并链上静态绑定库）
+env = SConscript("godot-cpp/SConstruct")
+
+env.Append(CPPPATH=["src/", "third_party/"])
+# 进程内编码器（video_enc.cpp）要用 Android 的 libmediandk（MediaCodec/Muxer/Extractor）。
+# android_rate.cpp 的 ANativeWindow_fromSurface/release 在 libandroid。
+# 少了这些符号是"未定义但允许"，dlopen 时才炸——手机上一启动就灰屏（主场景加载失败）。
+if any(a.startswith("platform=android") for a in sys.argv):
+    env.Append(LIBS=["mediandk", "log", "android"])
+    # 未定义符号必须在链接期就报错：否则 .so 能编出来，装到手机 dlopen 才失败，
+    # 表现就是"一启动灰屏"（扩展没加载 → ChartPlayer 缺失 → 主场景脚本编译失败）
+    env.Append(LINKFLAGS=["-Wl,--no-undefined"])
+sources = Glob("src/*.cpp")
+# 中间 .obj 产物与 src/.gdignore 同目录，Godot 不会尝试导入
+# 平台感知输出名：Windows 保持 .dll（显式目标与 build_ext4.bat 兼容）；
+# Android/其它用 SCons 工具链前后缀 → libchart_ext.android.template_*.arm64-v8a.so
+# 扩展名/前缀：windows=.dll，android=lib….so（APK 强制 lib 前缀；SHLIBSUFFIX 为空不自动加）
+android_build = any(a.startswith("platform=android") for a in sys.argv)
+ext = ".so" if android_build else ".dll"
+base = ("lib" if android_build else "") + "chart_ext"
+lib = env.SharedLibrary("bin/" + base + env["suffix"] + ext, sources)
+env.Replace(DEFAULT_TARGETS=[lib])

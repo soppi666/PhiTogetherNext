@@ -1,0 +1,39 @@
+# ── Godot 编辑器缓存 / 导出模板 ──────────────────────────────────────────────
+.godot/
+/android/
+
+# ── 构建产物（本地上 5.4 GB，一个字节都不该进仓库）──────────────────────────
+build/
+.tmp_charts/
+.tmp_pez/
+.tmp_qa/
+gdextension/bin/
+*.exp
+*.lib
+*.dll
+*.so
+*.obj
+*.os
+*.pdb
+
+# ── 上游 C++ 绑定：838 MB，用 submodule 或按 README 里那条命令 clone ─────────
+gdextension/godot-cpp/
+
+# SCons 构建数据库：二进制，里面有本机绝对路径（千万别提交）
+gdextension/.sconsign.dblite
+
+# ── 签名凭据（export_presets.cfg 里的 keystore 密码已经清空，别再填回去）────
+*.keystore
+*.keystore.*
+*.jks
+sign.env
+export_credentials.cfg
+
+
+# ── 开发期笔记（不公开，本地保留）────────────────────────────────────────────
+/PHIZONE_GAP.md
+
+# ── 系统/编辑器杂物 ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
