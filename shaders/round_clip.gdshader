@@ -14,6 +14,9 @@ void fragment() {
 	vec2 p = UV * item_size - card_pos - card_size * 0.5;
 	vec2 q = abs(p) - (card_size * 0.5 - vec2(radius));
 	float d = min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
-	COLOR = texture(TEXTURE, UV) * COLOR;
+	// ⚠ fragment 里的 COLOR 进来时**已经是 texture × 顶点色**了（Godot 4 canvas 语义）。
+	// 再写 `COLOR = texture(TEXTURE, UV) * COLOR` 等于把贴图乘了两遍：8bit 下就是
+	// "变暗 + 饱和度暴涨"（实测同一张曲绘 R177→140、饱和度 0.28→0.44），结算页曲绘卡
+	// 看着像蒙了一层滤镜就是这个。这里只需要动 alpha。
 	COLOR.a *= clamp(0.5 - d, 0.0, 1.0);  // 1px 宽的过渡边，等价于 canvas 路径的抗锯齿
 }
